@@ -1,0 +1,192 @@
+apiVersion: opcuabroker.iotoperations.azure.com/v1beta1
+kind: AssetType
+metadata:
+  name: thermostat
+  namespace: azure-iot-operations
+  labels:
+    com.microsoft.e4i/validation-scope: v1beta1
+spec:
+  name: Thermostat
+  labels:
+    - opcuabroker
+    - demo
+    - thermostat
+  schema: |-
+    {
+      "@context": "dtmi:dtdl:context;2",
+      "@id": "dtmi:com:example:Thermostat;1",
+      "@type": "Interface",
+      "displayName": { "en": "Thermostat" },
+      "description": "Reports current temperature and provides desired temperature control.",
+      "contents": [
+          {
+              "@type": "Telemetry",
+              "name": "temperature",
+              "displayName": { "en": "Temperature" },
+              "description": "Temperature in degrees Celsius.",
+              "schema": {
+                  "@type": "Object",
+                  "fields": [
+                      {
+                          "name": "statusCode",
+                          "schema": "integer"
+                      },
+                      {
+                          "name": "sourceTimestamp",
+                          "schema": "dateTime"
+                      },
+                      {
+                          "name": "value",
+                          "schema": "double"
+                      }
+                  ]
+              }
+          },
+          {
+              "@type": "Telemetry",
+              "name": "pressure",
+              "displayName":{ "en": "Pressure" },
+              "description": "Pressure.",
+              "schema": {
+                  "@type": "Object",
+                  "fields": [
+                      {
+                          "name": "statusCode",
+                          "schema": "integer"
+                      },
+                      {
+                          "name": "sourceTimestamp",
+                          "schema": "dateTime"
+                      },
+                      {
+                          "name": "value",
+                          "schema": "double"
+                      }
+                  ]
+              }
+          },
+          {
+              "@type": "Telemetry",
+              "name": "boilerStatus",
+              "displayName": { "en": "Boiler Status" },
+              "description": "Boiler Status",
+              "schema": {
+                  "@type": "Object",
+                  "fields": [
+                      {
+                          "name": "statusCode",
+                          "schema": "integer"
+                      },
+                      {
+                          "name": "sourceTimestamp",
+                          "schema": "dateTime"
+                      },
+                      {
+                          "name": "value",
+                          "schema": {
+                              "@type": "Object",
+                              "fields": [
+                                  {
+                                      "name": "Temperature",
+                                      "schema": {
+                                          "@type": "Object",
+                                          "fields": [
+                                              {
+                                                  "name": "Top",
+                                                  "schema": "integer"
+                                              },
+                                              {
+                                                  "name": "Bottom",
+                                                  "schema": "integer"
+                                              }
+                                          ]
+                                      }
+                                  },
+                                  {
+                                      "name": "Pressure",
+                                      "schema": "integer"
+                                  },
+                                  {
+                                      "name": "HeaterState",
+                                      "schema": {
+                                          "@type": "Enum",
+                                          "valueSchema": "integer",
+                                          "enumValues": [
+                                              {
+                                                  "name": "off",
+                                                  "enumValue": 0
+                                              },
+                                              {
+                                                  "name": "on",
+                                                  "enumValue": 1
+                                              }
+                                          ]
+                                      }
+                                  }
+                              ]
+                          }
+                      }
+                  ]
+              }
+          },
+          {
+              "@type": "Telemetry",
+              "name": "serverEvents",
+              "displayName": { "en": "Events" },
+              "description": "Demo the event feature.",
+              "schema": {
+                  "@type": "Object",
+                  "fields": [
+                      {
+                          "name": "eventId",
+                          "schema": "string"
+                      },
+                      {
+                          "name": "eventType",
+                          "schema": {
+                              "@type": "Object",
+                              "fields": [
+                                  {
+                                      "name": "Id",
+                                      "schema": "integer"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "name": "sourceNode",
+                          "schema": {
+                              "@type": "Object",
+                              "fields": [
+                                  {
+                                      "name": "Id",
+                                      "schema": "integer"
+                                  }
+                              ]
+                          }
+                      },
+                      {
+                          "name": "sourceName",
+                          "schema": "string"
+                      },
+                      {
+                          "name": "time",
+                          "schema": "dateTime"
+                      },
+                      {
+                          "name": "receiveTime",
+                          "schema": "dateTime"
+                      },
+                      {
+                          "name": "message",
+                          "schema": "string"
+                      },
+                      {
+                          "name": "severity",
+                          "schema": "integer"
+                      }
+                  ]
+              }
+          }
+      ]
+    }
