@@ -26,7 +26,7 @@ deploymentName="aio-deployment-$randomValue"
 scriptPath=$(dirname $0)
 
 echo "Deploying AIO via ARM template to cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP"
-# TODO change to bicep
+
 az deployment group create \
     --resource-group $RESOURCE_GROUP \
     --name aio-deployment-$deploymentName \
@@ -41,8 +41,9 @@ kubectl config set-context --current --namespace=azure-iot-operations
 
 # Deploy MQ Broker, Listener and Diagnostics
 echo "deploying MQ Broker, Listener and Diagnostics"
-kubectl apply -f $scriptPath/yaml/cert-issuer.yaml
-kubectl apply -f $scriptPath/yaml/mq-broker.yaml
+kubectl apply -f $scriptPath/yaml/cert-issuer-primary.yaml
+kubectl apply -f $scriptPath/yaml/mq-broker-base.yaml
+kubectl apply -f $scriptPath/yaml/mq-broker-listener-primary.yaml
 
 # Check for deployment of MQ Broker
 kubectl get broker --namespace azure-iot-operations
@@ -57,35 +58,36 @@ do
 done
 
 # :: TODO ::
-# # Deploy OPC UA with simulator
-# helm upgrade -i opcuabroker oci://mcr.microsoft.com/azureiotoperations/opcuabroker/helmchart/microsoft.iotoperations.opcuabroker \
-#     --set image.registry=mcr.microsoft.com     \
-#     --version 0.2.0-preview   \
-#     --namespace azure-iot-operations    \
-#     --create-namespace     \
-#     --set secrets.kind=k8s     \
-#     --set secrets.csiServicePrincipalSecretRef=aio-akv-sp \
-#     --set secrets.csiDriver=secrets-store.csi.k8s.io \
-#     --set mqttBroker.address=mqtts://aio-mq-dmqtt-frontend.azure-iot-operations.svc.cluster.local:8883     \
-#     --set mqttBroker.authenticationMethod=serviceAccountToken \
-#     --set mqttBroker.serviceAccountTokenAudience=aio-mq     \
-#     --set mqttBroker.caCertConfigMapRef='aio-ca-trust-bundle-test-only'     \
-#     --set mqttBroker.caCertKey=ca.crt \
-#     --set connectUserProperties.metriccategory=aio-opc     \
-#     --set opcPlcSimulation.deploy=true     \
-#     --wait
+# Deploy OPC UA with simulator
+helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/microsoft-iotoperations-opcuabroker \
+    --set image.registry=mcr.microsoft.com     \
+    --version 0.2.0-preview.2   \
+    --namespace azure-iot-operations    \
+    --create-namespace     \
+    --set secrets.kind=k8s     \
+    --set secrets.csiServicePrincipalSecretRef=aio-akv-sp \
+    --set secrets.csiDriver=secrets-store.csi.k8s.io \
+    --set mqttBroker.address=mqtts://aio-mq-dmqtt-frontend.azure-iot-operations.svc.cluster.local:8883     \
+    --set mqttBroker.authenticationMethod=serviceAccountToken \
+    --set mqttBroker.serviceAccountTokenAudience=aio-mq     \
+    --set mqttBroker.caCertConfigMapRef=${AIO_TRUST_CONFIG_MAP}   \
+    --set mqttBroker.caCertKey=ca.crt \
+    --set connectUserProperties.metriccategory=aio-opc     \
+    --set opcPlcSimulation.deploy=true     \
+    --wait
 
-# helm upgrade -i aio-opcplc-connector oci://mcr.microsoft.com/opcuabroker/helmchart/aio-opc-opcua-connector \
-#     --version 0.2.0-preview \
-#     --namespace azure-iot-operations \
-#     --set opcUaConnector.settings.discoveryUrl="opc.tcp://opcplc-000000.azure-iot-operations.svc.cluster.local:50000" \
-#     --set opcUaConnector.settings.autoAcceptUntrustedCertificates=true \
-#     --wait
+helm upgrade -i aio-opcplc-connector oci://mcr.microsoft.com/opcuabroker/helmchart/aio-opc-opcua-connector \
+    --version 0.2.0-preview.2 \
+    --namespace azure-iot-operations \
+    --set opcUaConnector.settings.discoveryUrl="opc.tcp://opcplc-000000.azure-iot-operations.svc.cluster.local:50000" \
+    --set opcUaConnector.settings.autoAcceptUntrustedCertificates=true \
+    --wait
 
 kubectl apply -f $scriptPath/yaml/assettypes.yaml
 kubectl apply -f $scriptPath/yaml/assets.yaml
 
-# Deploy sample pipeline
-# TODO
+# Deploy Mosquitto client for testing
+kubectl create serviceaccount mqtt-client -n $WORKLOAD_NAMESPACE
+kubectl apply -f $scriptPath/yaml/mosquitto_client.yaml
 
-echo "Finished deploying AIO and sample pipeline"
+echo "Finished deploying AIO components with primary cert chain"

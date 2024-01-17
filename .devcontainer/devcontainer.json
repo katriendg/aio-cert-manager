@@ -13,7 +13,7 @@
 			"extensions": "connectedk8s,k8s-extension,azure-iot-ops"
 		},
 		"ghcr.io/rio/features/k3d:1": {},
-		"ghcr.io/rio/features/k9s:1.1.3": {},
+		"ghcr.io/rio/features/k9s:1.1.5": {},
 		"ghcr.io/devcontainers/features/powershell:1.2": {},
 		"ghcr.io/devcontainers/features/dotnet:2": {
 			"version": "7.0",
@@ -34,7 +34,10 @@
 	 },
 	 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
+	"forwardPorts": [
+		1883,
+		8883
+	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	"postCreateCommand": "bash ./.devcontainer/postCreateCommand.sh",

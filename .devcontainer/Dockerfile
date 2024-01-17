@@ -15,3 +15,8 @@ RUN wget https://dl.smallstep.com/gh-release/cli/docs-cli-install/v0.23.4/step-c
 RUN wget https://github.com/EdJoPaTo/mqttui/releases/download/v0.19.0/mqttui-v0.19.0-x86_64-unknown-linux-gnu.deb && \
     sudo apt-get install ./mqttui-v0.19.0-x86_64-unknown-linux-gnu.deb && \
     rm -rf ./mqttui-v0.19.0-x86_64-unknown-linux-gnu.deb
+
+# Install cmctl - cert-manager's CLI
+RUN cd /usr/bin && \
+    curl -fsSL https://github.com/cert-manager/cert-manager/releases/latest/download/cmctl-linux-amd64.tar.gz | tar xzv --no-anchored cmctl
+               
