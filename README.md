@@ -30,7 +30,7 @@ export AIO_TRUST_CONFIG_MAP=aio-ca-trust-bundle-test-only
 
 ## Repo Samples
 
-### Sample with cmctl CLI to renew certs and manual updating of trust bundle
+### Sample with `cmctl` CLI to renew certs and manual updating of trust bundle
 
 This is the most simplified solution for ensuring rollover but it does require [`cmctl`](https://cert-manager.io/docs/reference/cmctl/) command line, which is pre-installed with the Dev Container.
 
@@ -52,13 +52,13 @@ The current sample installs Key Vault, KV CSI Driver Arc extension, AIO Arc exte
 ./deploy/4-b-aio-cert-secondary.sh 
 ```
 
-The key flow to review is in the last script where a secondary CA root key pair is created, the ConfigMap with the trust bundle is updated to include primary AND secondary certs so clients can trust both old and new certs upfront. The script then updates the secret replacing the primary cert/key with the secondary. This does not automatically trigger cert re-issuance so this is then forced by using the `cmctl certificate renew` command line.
+The most relevant part of this flow to review is in the last script `4-b-aio-cert-secondary.sh` where a secondary CA root key pair is created, the ConfigMap with the trust bundle is updated to include primary AND secondary certs so clients can trust both old and new certs upfront. The script then updates the secret replacing the primary cert/key with the secondary. This does not automatically trigger cert re-issuance so this is then forced by using the `cmctl certificate renew` command line.
 
 Because TLS clients such as OPC UA Supervisor don't automatically pick up the new trust bundle via ConfigMap mount, it is also necessary to restart the pods for some services.
 
 ### Sample with trust-manager and manual rollover using new Issuer for BrokerListener
 
-One sample uses `trust-manager` and uses a new `Issuer` to pick-up root cert changes. For this sample use:
+This sample uses `trust-manager` and uses a new `Issuer` to pick-up root cert changes. Take a moment to review the different steps taken by the scripts. For this sample use:
 
 ```bash
 # ensure Environment Variables are set as described in Readme
@@ -119,7 +119,33 @@ At any time if you want to better understand which root cert has been used to is
 
 ```bash
 openssl s_client -showcerts -connect localhost:8883 </dev/null
+
+# Notice the name of the cert and also cert verification issues
+
+# ---
+# SSL handshake has read 1516 bytes and written 407 bytes
+# Verification error: self-signed certificate in certificate chain
+# ---
+# ...
+# Verify return code: 19 (self-signed certificate in certificate chain)
+
 ```
+
+To see SSL verification validation or errors, depending on which `-CAfile` you use with your request, you can use the following:
+
+```bash
+openssl s_client -showcerts -connect localhost:8883 -CAfile ./temp/certs/ca-secondary-cert.pem </dev/null
+
+# Review the SSL handshake:
+# ---
+# SSL handshake has read 1518 bytes and written 407 bytes
+# Verification: OK
+# ---
+# ...
+# Verify return code: 0 (ok)
+```
+
+
 
 ## Things to Understand
 
