@@ -1,0 +1,63 @@
+apiVersion: mq.iotoperations.azure.com/v1beta1
+kind: Broker
+metadata:
+  name: mq-instance-broker
+  namespace: azure-iot-operations
+spec:
+  authImage:
+    pullPolicy: Always
+    repository: mcr.microsoft.com/azureiotoperations/dmqtt-authentication
+    tag: 0.2.0-preview
+  brokerImage:
+    pullPolicy: Always
+    repository: mcr.microsoft.com/azureiotoperations/dmqtt-pod
+    tag: 0.2.0-preview
+  healthManagerImage:
+    pullPolicy: Always
+    repository: mcr.microsoft.com/azureiotoperations/dmqtt-operator
+    tag: 0.2.0-preview
+  memoryProfile: tiny
+  mode: distributed # distributed auto
+  cardinality:
+    backendChain:
+      partitions: 2
+      redundancyFactor: 2
+      workers: 2
+    frontend:
+      replicas: 2
+      workers: 2
+  encryptInternalTraffic: false
+  diagnostics:
+    diagnosticServiceEndpoint: aio-mq-diagnostics-service:9700 
+    probeImage: mcr.microsoft.com/azureiotoperations/diagnostics-probe:0.2.0-preview
+    enableMetrics: true  
+    enableTracing: false
+    enableSelfCheck: true
+    logLevel: info,hyper=off,kube_client=off,tower=off,conhash=off,h2=off
+  # TODO diskBackedMessageBufferSettings for message buffer behavior - 
+  # see https://learn.microsoft.com/en-us/azure/iot-operations/manage-mqtt-connectivity/howto-configure-availability-scale#configure-disk-backed-message-buffer-behavior
+---
+apiVersion: mq.iotoperations.azure.com/v1beta1
+kind: DiagnosticService
+metadata:
+  name: mq-instance-diagnostics-service
+  namespace: azure-iot-operations
+spec:
+  image:
+    repository: mcr.microsoft.com/azureiotoperations/diagnostics-service
+    tag: 0.2.0-preview
+  logLevel: info
+  logFormat: text
+---
+apiVersion: mq.iotoperations.azure.com/v1beta1
+kind: BrokerListener
+metadata:
+  name: az-mqtt-non-tls-listener
+  namespace: azure-iot-operations
+spec:
+  brokerRef: mq-instance-broker
+  authenticationEnabled: false
+  authorizationEnabled: false
+  port: 1883
+  serviceType: loadBalancer
+  serviceName: aio-mq-dmqtt-frontend

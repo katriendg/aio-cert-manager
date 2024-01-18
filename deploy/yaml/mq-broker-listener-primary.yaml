@@ -1,0 +1,24 @@
+apiVersion: mq.iotoperations.azure.com/v1beta1
+kind: BrokerListener
+metadata:
+  name: mq-tls-listener
+  namespace: azure-iot-operations
+spec:
+  brokerRef: mq-instance-broker
+  authenticationEnabled: false
+  authorizationEnabled: false
+  port: 8883
+  serviceName: aio-mq-dmqtt-frontend
+  serviceType: loadBalancer
+  tls:
+    automatic:
+      issuerRef:
+        group: cert-manager.io
+        kind: Issuer
+        name: mq-dmqtt-frontend
+      san:
+        dns:
+        - aio-mq-dmqtt-frontend.azure-iot-operations.svc.cluster.local
+        - aio-mq-dmqtt-frontend.azure-iot-operations
+        - localhost # used for local testing with port-forwarding / do not use in production
+        ip: [] # empty array for now as IP is still a required field when setting `san`
