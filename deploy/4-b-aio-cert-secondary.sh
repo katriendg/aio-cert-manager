@@ -111,14 +111,14 @@ kubectl get secret $PRIMARY_CA_KEY_PAIR_SECRET_NAME -n $DEFAULT_NAMESPACE -o jso
 # Use cmctl CLI to renew the certs using the same secret
 cmctl renew --namespace=azure-iot-operations --all
 sleep 10 # wait for the new cert to be issued
-kubectl get events | grep issu
+# Get all events that have to do with certificate issuing
+kubectl get events | grep -E 'issu(er|ed|ing)'
 
 # Update the client pods to pick the new configmap before the rotation (for testing, Mosquitto Pod can be used)
 # Delay for the sync of the new configmap to the pods depends on configuration of kubelet and cache propagation delay
 #  https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically
 
 # For OPC Supervisor, restart the pod to pick up the new configmap, this does not happen automatically
-
 # restart OPC UA with new trust bundle CM name
 kubectl rollout restart deployment/aio-opc-supervisor -n $DEFAULT_NAMESPACE
 

@@ -30,4 +30,4 @@ spec:
           expirationSeconds: 86400
   - name: trust-bundle
     configMap:
-      name: aio-ca-trust-bundle-test-only # Default root CA cert managed by trust-manager
+      name: aio-ca-trust-bundle-test-only # Default root CA cert trust bundle
