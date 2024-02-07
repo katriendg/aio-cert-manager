@@ -1,4 +1,4 @@
-# Azure IoT Operations (AIO) Certificate Management Sample
+# Azure IoT Operations (AIO) TLS Certificate Management Sample
 
 Azure IoT Operations sample that highlights mechanisms and patterns to take care of TLS cert management, renewal and trust bundles. The goal of this sample is to research and validate means to rollover CA Certs with minimal impact on AIO services and client workloads.
 
@@ -77,7 +77,7 @@ The current sample installs Key Vault, Key Vault CSI Driver Arc extension, AIO A
 ./deploy/3-aio-deploy.sh 
 
 # Check AIO is running, then rollover to secondary cert by running
-./deploy/4-b-aio-cert-secondary.sh 
+./deploy/4-b-aio-cert-secondary-cli.sh 
 ```
 
 The most relevant part of this flow to review is in the last script `4-b-aio-cert-secondary.sh` where a secondary CA root key pair is created, the ConfigMap with the trust bundle is updated to include primary AND secondary certs so clients can trust both old and new certs upfront (check this section in the official *cert-manager* documentation [cert-manager Integration: Intentionally Copying CA Certificates

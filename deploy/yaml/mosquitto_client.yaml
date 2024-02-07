@@ -1,3 +1,5 @@
+# This is a sample from 
+# https://learn.microsoft.com/en-us/azure/iot-operations/manage-mqtt-connectivity/howto-test-connection
 apiVersion: v1
 kind: Pod
 metadata:

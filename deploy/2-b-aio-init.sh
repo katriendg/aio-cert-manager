@@ -4,7 +4,7 @@ set -e
 
 # ================================================================== #
 # Script based on https://github.com/Azure/azure-iot-operations/blob/main/tools/setup-cluster/setup-cluster.sh
-# USE THIS SAMPLE IN CONJUNCTION WITH 4-1-aio-cert-reinit.sh which does not use trust-manager
+# USE THIS SAMPLE IN CONJUNCTION WITH 4-b-aio-cert-secondary-cli.sh which does not use trust-manager
 # some modifications to setup CA and trust configmap
 # This script deploys Azure Key Vault, sets policies for AKV in Azure 
 # On the cluster:
