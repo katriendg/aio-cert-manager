@@ -20,6 +20,10 @@ if [ -z "$LOCATION" ]; then
     echo "LOCATION is not set"
     exit 1
 fi
+if [ -z "$AIO_TRUST_CONFIG_MAP" ]; then
+    echo "AIO_TRUST_CONFIG_MAP is not set"
+    exit 1
+fi
 
 randomValue=$RANDOM
 deploymentName="aio-deployment-$randomValue"
@@ -57,7 +61,6 @@ do
     status=$(kubectl get broker mq-instance-broker -o json | jq '.status.status')
 done
 
-# :: TODO ::
 # Deploy OPC UA with simulator
 helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/microsoft-iotoperations-opcuabroker \
     --set image.registry=mcr.microsoft.com     \
