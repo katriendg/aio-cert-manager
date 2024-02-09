@@ -25,7 +25,7 @@ if [ -z "$WORKLOAD_NAMESPACE" ]; then
 fi
 
 # ================================================================== #
-# USE THIS SAMPLE IN CONJUNCTION WITH 2-1-aio-init.sh which does not use trust-manager
+# USE THIS SAMPLE IN CONJUNCTION WITH 2-b-aio-init.sh which does not use trust-manager
 # This script only affects the cluster and does not change any Azure resources
 # On Disk:
 # - creates a local self signed CA cert root, key and chain - primary root

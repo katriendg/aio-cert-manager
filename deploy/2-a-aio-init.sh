@@ -98,7 +98,7 @@ az k8s-extension create --cluster-name $CLUSTER_NAME --resource-group $RESOURCE_
 --cluster-type connectedClusters \
 --extension-type Microsoft.AzureKeyVaultSecretsProvider \
 --name $AKV_SECRET_PROVIDER_NAME \
---configuration-settings secrets-store-csi-driver.enableSecretRotation=true secrets-store-csi-driver.rotationPollInterval=$AKV_PROVIDER_POLLING_INTERVAL secrets-store-csi-driver.syncSecret.enabled=false
+--configuration-settings secrets-store-csi-driver.enableSecretRotation=true secrets-store-csi-driver.rotationPollInterval=$AKV_PROVIDER_POLLING_INTERVAL secrets-store-csi-driver.syncSecret.enabled=true
 
 echo "Check if AKV extension is installed"
 kubectl get pods -n kube-system
@@ -114,7 +114,7 @@ metadata:
 EOF
 
 echo "Adding AKV SP secret 'aio-akv-sp' in the namespace"
-kubectl create secret generic aio-akv-sp --from-literal clientid="$AKV_SP_CLIENT_ID" --from-literal clientsecret="$AKV_SP_CLIENTSECRET" --namespace $DEFAULT_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
+kubectl create secret generic aio-akv-sp --from-literal clientid="$AKV_SP_CLIENT_ID" --from-literal clientsecret="$AKV_SP_CLIENT_SECRET" --namespace $DEFAULT_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 kubectl label secret aio-akv-sp secrets-store.csi.k8s.io/used=true --namespace $DEFAULT_NAMESPACE
 
 ##############################################################################
