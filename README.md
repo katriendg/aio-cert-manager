@@ -1,8 +1,10 @@
 # Azure IoT Operations (AIO) TLS Certificate Management Sample
 
-Azure IoT Operations sample that highlights mechanisms and patterns to take care of TLS cert management, renewal and trust bundles. The goal of this sample is to research and validate means to rollover CA Certs with minimal impact on AIO services and client workloads.
+This Azure IoT Operations example showcases strategies and methods for managing, renewing, and handling TLS certificates and trust bundles. The objective of this example is to explore and confirm ways to transition CA Certificates with minimal disruption to AIO services and client tasks.
 
-> This repo is intended as a learning experiment and not official guidance.
+For a review of concepts such as TLS, Certificates, CA, and Trust Bundles, refer to: [Certificates, Roots CAs, Intermediate CA, Leaf Certificates, Trust and TLS](./docs/certs-tls-bundles-doc.md).
+
+> Please note, this repository is designed for educational purposes and does not constitute official advice.
 
 ## Deployment and Testing Flow
 
@@ -192,7 +194,6 @@ kubectl describe Certificate aio-mq-frontend-server-8883 -n $DEFAULT_NAMESPACE
 * How do trust bundles work and mounting them, using them in pods
 * How *cert-manager* `Issuer` work with `ca` spec with a secret, and when are certs re-issued. For example changes to the secret are not detected automatically for the cert to be re-issued. There is still an open GH issue on the topic: [https://github.com/cert-manager/cert-manager/issues/2478](https://github.com/cert-manager/cert-manager/issues/2478)
 * Basics of using *trust-manager*  as an option for managing (public) trust
-* How pods with ConfigMaps as mounted volumes do and don't sync, as well as sync delay with K8S
 * How typically pods needs to restart to pick up the changes and re-initialize the connection to MQ Broker (TLS handshake needs to be re-initialized)
 * Using `cmctl` CLI to manually trigger re-issuance of certs based on root key pair changes
 
