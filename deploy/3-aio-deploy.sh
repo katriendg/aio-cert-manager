@@ -34,7 +34,7 @@ echo "Deploying AIO via ARM template to cluster $CLUSTER_NAME in resource group 
 az deployment group create \
     --resource-group $RESOURCE_GROUP \
     --name aio-deployment-$deploymentName \
-    --template-file "$scriptPath/arm/aio2previewminimal.json" \
+    --template-file "$scriptPath/arm/aio2preview-notarget.json" \
     --parameters clusterName=$CLUSTER_NAME \
     --parameters location=$LOCATION \
     --parameters clusterLocation=$LOCATION \
@@ -64,7 +64,7 @@ done
 # Deploy OPC UA with simulator
 helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/microsoft-iotoperations-opcuabroker \
     --set image.registry=mcr.microsoft.com     \
-    --version 0.2.0-preview.2   \
+    --version 0.3.0-preview.1   \
     --namespace azure-iot-operations    \
     --create-namespace     \
     --set secrets.kind=k8s     \
@@ -80,7 +80,7 @@ helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/micros
     --wait
 
 helm upgrade -i aio-opcplc-connector oci://mcr.microsoft.com/opcuabroker/helmchart/aio-opc-opcua-connector \
-    --version 0.2.0-preview.2 \
+    --version 0.3.0-preview.1 \
     --namespace azure-iot-operations \
     --set opcUaConnector.settings.discoveryUrl="opc.tcp://opcplc-000000.azure-iot-operations.svc.cluster.local:50000" \
     --set opcUaConnector.settings.autoAcceptUntrustedCertificates=true \
