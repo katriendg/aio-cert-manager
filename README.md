@@ -129,7 +129,7 @@ For this sample use the following:
 # ensure Environment Variables are set as described in Readme section Initialization
 
 # initialize Arc
-./deploy/kv-intermediate/1-arc-connect.sh
+./deploy/1-arc-connect.sh
 
 # initialize root/intermediate certs, upload to Key Vault, AIO configmaps and secrets, key vault, CSI driver, install trust-manager and setup Bundle
 ./deploy/kv-intermediate/2-aio-init.sh
@@ -244,6 +244,12 @@ kubectl describe Certificate aio-mq-frontend-server-8883 -n $DEFAULT_NAMESPACE
 kubectl get secret aio-mq-frontend-server-8883 -n $DEFAULT_NAMESPACE -o jsonpath='{.data.tls\.crt}' | base64 --decode
 
 ```
+
+## TODOs
+
+* Add a document about pros and cons around Intermediate CAs
+* For the Intermediate CA Sample: document how the CA is preset in Key Vault and on SPC + Bundle as a duplicate of Primary until first rollover
+* Document TLS Handshake
 
 ## Things to Understand
 

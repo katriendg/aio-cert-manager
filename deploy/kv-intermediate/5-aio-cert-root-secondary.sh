@@ -75,29 +75,6 @@ az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-key" --vault-
 az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-cert" --vault-name $AKV_NAME --file $intermediateCertFileName --content-type application/x-pem-file --output none
 az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-cert-chain" --vault-name $AKV_NAME --file $rootIntermediateCertChainFileName --content-type application/x-pem-file --output none
 
-kubectl apply -f - <<EOF
-apiVersion: trust.cert-manager.io/v1alpha1
-kind: Bundle
-metadata:
-  name: $AIO_TRUST_CONFIG_MAP
-  namespace: $DEFAULT_NAMESPACE
-spec:
-  sources:
-  - useDefaultCAs: false
-  - secret:
-      name: aio-ca-tls-primary-trust-bundle-test-only
-      key: "$AIO_TRUST_CONFIG_MAP_KEY"
-  - secret:
-      name: aio-ca-tls-secondary-trust-bundle-test-only
-      key: "$AIO_TRUST_CONFIG_MAP_KEY"
-  target:
-    configMap:
-      key: "$AIO_TRUST_CONFIG_MAP_KEY"
-    namespaceSelector:
-      matchLabels:
-        trust: enabled
-EOF
-
 # Show current secret public cert part
 echo "Please wait... 3 minutes for Key Vault secrets syncing to cluster and finish mounting flow"
 counter=0
