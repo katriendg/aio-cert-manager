@@ -79,7 +79,7 @@ helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/micros
     --set mqttBroker.serviceAccountTokenAudience=aio-mq     \
     --set mqttBroker.caCertConfigMapRef=${AIO_TRUST_CONFIG_MAP}   \
     --set mqttBroker.caCertKey=${AIO_TRUST_CONFIG_MAP_KEY} \
-    --set securityPki.defaultApplicationCert=aio-opc-opcuabroker-default-application-cert \
+    --set opcPlcSimulation.autoAcceptUntrustedCertificates=true \
     --set connectUserProperties.metriccategory=aio-opc     \
     --set opcPlcSimulation.deploy=true     \
     --wait

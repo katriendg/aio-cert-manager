@@ -116,14 +116,12 @@ This sample also has an option for renewing the certs using  `cmctl` CLI for *ce
 ./deploy/4-a-2-aio-cert-secondary-cli.sh 
 ```
 
-### Sample use of Self-signed Root, Intermediate CA, *trust-manager* and `cmctl` for certificate renewal
+### Sample using Self-signed Root, Intermediate CA, Key Vault, *trust-manager* and `cmctl` for certificate renewal
 
-In this example the aim is to walk through all the steps that are required to leverage a Root CA and an Intermediate CA. The latter is the one used by the cluster for issuing server certificates by `cert-manager`. Although the sample here is leveraging self-signed certificates, it shows a potential flow with certificates delivered by a PKI for production.
+In this example the aim is to walk through all the steps that are required to leverage a Root CA and an Intermediate CA, and roll these over. The intermediate CA is the one used by the cluster for issuing server certificates by `cert-manager`. Although the sample here is leveraging self-signed certificates, it shows a potential flow with certificates delivered by a PKI for production.
 
-This sample can be used as a learning experiment to understand the concepts of Root and Intermediate CAs and leaf certificates, certificate chains, trust bundles and chain verification.
+This sample can be used as a learning experiment to understand the concepts of Root and Intermediate CAs, leaf certificates, certificate chains, trust bundles and chain verification.
 The Root CA is valid for 365 days, the Intermediate CA is valid for 91 days where we assume the Intermediate CA would need to be rolled over every 3 months. The rollover needs to happen before the 3 month period is reached.
-
-> Note: this example does not deploy OPC UA Broker because of a bug in server chain and trust bundle validation. We will add the OPC UA Broker to the flow once the bug is solved in the AIO Preview.
 
 For this sample use the following:
 
@@ -142,7 +140,7 @@ For this sample use the following:
 
 This section initializes the cluster with AIO, an Intermediate CA chain, a trust `Bundle` managed by *trust-manager* and a sample Mosquitto client Pod in the `workload` namespace. Please see the section [Testing with in-cluster Mosquitto client tools to validate trust chains](#testing-with-in-cluster-mosquitto-client-tools-to-validate-trust-chains) and play with the options.
 
-The next phase would be to rollover the Intermediate CA and ensuring the server certificates are reissued. This is under the assumption that the Root CA is valid for a much longer time than the Intermediate CA (in our sample Root CA is one year, Intermediate is 3 months). Because the Root CA is still valid, the ConfigMap with trust bundle used by the clients does not need updating. Also any client Pods will not need to pick up any new ConfigMap updates so no restarts are needed.
+The next phase would be to rollover the Intermediate CA and ensuring the server certificates are reissued. This is under the assumption that the Root CA is valid for a much longer time than the Intermediate CA. Because the Root CA is still valid, the ConfigMap with trust bundle used by the clients does not need updating. Also any client Pods will not need to pick up any new ConfigMap updates so no Pod restarts are needed.
 
 ```bash
 
@@ -249,7 +247,7 @@ kubectl get secret aio-mq-frontend-server-8883 -n $DEFAULT_NAMESPACE -o jsonpath
 
 ## Things to Understand
 
-* How do trust bundles work and mounting them, using them in pods
+* How do trust bundles work, mounting them, using them in pods
 * Certificate chains and TLS handshake
 * How *cert-manager* `Issuer` work with `ca` spec with a secret, and when are certs re-issued. For example changes to the secret are not detected automatically for the cert to be re-issued. There is still an open GH issue on the topic: [https://github.com/cert-manager/cert-manager/issues/2478](https://github.com/cert-manager/cert-manager/issues/2478)
 * Basics of using *trust-manager*  as an option for managing (public) trust

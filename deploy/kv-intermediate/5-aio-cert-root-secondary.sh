@@ -75,30 +75,6 @@ az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-key" --vault-
 az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-cert" --vault-name $AKV_NAME --file $intermediateCertFileName --content-type application/x-pem-file --output none
 az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-cert-chain" --vault-name $AKV_NAME --file $rootIntermediateCertChainFileName --content-type application/x-pem-file --output none
 
-# echo "Updating Bundle CR to be used by trust manager"
-# kubectl apply -f - <<EOF
-# apiVersion: trust.cert-manager.io/v1alpha1
-# kind: Bundle
-# metadata:
-#   name: $AIO_TRUST_CONFIG_MAP
-#   namespace: $DEFAULT_NAMESPACE
-# spec:
-#   sources:
-#   - useDefaultCAs: false
-#   - configMap:
-#       name: aio-ca-tls-primary-trust-bundle-test-only
-#       key: "$AIO_TRUST_CONFIG_MAP_KEY"
-#   - configMap:
-#       name: aio-ca-tls-secondary-trust-bundle-test-only
-#       key: "$AIO_TRUST_CONFIG_MAP_KEY"
-#   target:
-#     configMap:
-#       key: "$AIO_TRUST_CONFIG_MAP_KEY"
-#     namespaceSelector:
-#       matchLabels:
-#         trust: enabled
-# EOF
-
 kubectl apply -f - <<EOF
 apiVersion: trust.cert-manager.io/v1alpha1
 kind: Bundle
@@ -123,8 +99,6 @@ spec:
 EOF
 
 # Show current secret public cert part
-echo "Get current public cert in the secret in the cluster"
-kubectl get secret $PRIMARY_CA_KEY_PAIR_SECRET_NAME -n $DEFAULT_NAMESPACE -o jsonpath='{.data.tls\.crt}' | base64 --decode
 echo "Please wait... 3 minutes for Key Vault secrets syncing to cluster and finish mounting flow"
 counter=0
 for i in {1..36}; do 
@@ -149,7 +123,7 @@ echo "Getting public cert in the secret in the cluster - it should be the new on
 kubectl get secret $PRIMARY_CA_KEY_PAIR_SECRET_NAME -n $DEFAULT_NAMESPACE -o jsonpath='{.data.tls\.crt}' | base64 --decode 
 
 # Check that Bundle has triggered ConfigMap update
-echo "Checking the status of the Bundle - lastTransitionTime should be minute(s) ago"
+echo "Checking the status of the Bundle - lastTransitionTime should be just minute(s) ago"
 kubectl get Bundle $AIO_TRUST_CONFIG_MAP -n $DEFAULT_NAMESPACE -o json | jq '.status'
 
 # Use cmctl CLI to renew the certs using the secondary Intermedicate CA, which has been updated in the same secret

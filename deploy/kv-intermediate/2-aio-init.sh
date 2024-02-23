@@ -379,6 +379,9 @@ spec:
   - secret:
       name: aio-ca-tls-primary-trust-bundle-test-only
       key: "$AIO_TRUST_CONFIG_MAP_KEY"
+  # - secret: # TODO discussion point on inclusion of empty/placeholder secondary upon first initialization
+  #     name: aio-ca-tls-secondary-trust-bundle-test-only
+  #     key: "$AIO_TRUST_CONFIG_MAP_KEY"
   target:
     configMap:
       key: "$AIO_TRUST_CONFIG_MAP_KEY"
