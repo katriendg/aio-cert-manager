@@ -34,7 +34,7 @@ echo "Deploying AIO via ARM template to cluster $CLUSTER_NAME in resource group 
 az deployment group create \
     --resource-group $RESOURCE_GROUP \
     --name aio-deployment-$deploymentName \
-    --template-file "$scriptPath/arm/aio2preview-notarget.json" \
+    --template-file "$scriptPath/arm/aio2previewminimal.json" \
     --parameters clusterName=$CLUSTER_NAME \
     --parameters location=$LOCATION \
     --parameters clusterLocation=$LOCATION \

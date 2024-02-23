@@ -4,11 +4,12 @@ set -e
 
 # ================================================================== #
 # Script based on https://github.com/Azure/azure-iot-operations/blob/main/tools/setup-cluster/setup-cluster.sh
-# USE THIS SAMPLE IN CONJUNCTION WITH 4-c-aio-cert-secondary-intermediate.sh 
+# USE THIS SAMPLE IN CONJUNCTION WITH ./deploy/kv-intermediate/4-aio-cert-secondary.sh 
 # some modifications to setup CA and trust configmap
 # This script deploys Azure Key Vault, sets policies for AKV in Azure 
 #  - on disk: creates a local self signed CA cert root, Intermediate CA, key and chain - primary root and intermediate
-#  - Uploads the Intermediate CA key and chain to a Key Vault Secret
+#  - uploads the Primary Root CA, Key, Intermediate CA key and chain to a Key Vault Secret
+#  - creates  KV secret for a secondary root CA
 # On the cluster:
 #  - enables Arc Extension KV CSI Driver, note the polling interval is set to 1 minute
 #  - creates configmap for trust bundle
@@ -129,8 +130,10 @@ az keyvault secret set --vault-name $AKV_NAME -n $PLACEHOLDER_SECRET_NAME --valu
 
 # Upload the root key and chain to the Key Vault
 echo "Add the root and intermediate CA to Key Vault"
-az keyvault secret set  --name "$rootCaKvSecretsNamePreFix-key" --vault-name $AKV_NAME --file $rootKeyFileName  --content-type application/x-pem-file  --output none
-az keyvault secret set  --name "$rootCaKvSecretsNamePreFix-cert" --vault-name $AKV_NAME --file $rootCertFileName --content-type application/x-pem-file --output none
+az keyvault secret set  --name "$rootCaKvSecretsNamePreFix-key-primary" --vault-name $AKV_NAME --file $rootKeyFileName  --content-type application/x-pem-file  --output none
+az keyvault secret set  --name "$rootCaKvSecretsNamePreFix-cert-primary" --vault-name $AKV_NAME --file $rootCertFileName --content-type application/x-pem-file --output none
+# for the secondary placeholder, copy in the primary root cert
+az keyvault secret set  --name "$rootCaKvSecretsNamePreFix-cert-secondary" --vault-name $AKV_NAME --file $rootCertFileName --content-type application/x-pem-file --output none
 # Upload intermediate key, cert and chain to Key Vault
 az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-key" --vault-name $AKV_NAME --file $intermediateKeyFileName  --content-type application/x-pem-file --output none
 az keyvault secret set  --name "$intermediateCaKvSecretsNamePreFix-cert" --vault-name $AKV_NAME --file $intermediateCertFileName --content-type application/x-pem-file --output none
@@ -160,8 +163,6 @@ EOF
 echo "Adding AKV SP secret 'aio-akv-sp' in the namespace"
 kubectl create secret generic aio-akv-sp --from-literal clientid="$AKV_SP_CLIENT_ID" --from-literal clientsecret="$AKV_SP_CLIENT_SECRET" --namespace $DEFAULT_NAMESPACE --dry-run=client -o yaml | kubectl apply -f -
 kubectl label secret aio-akv-sp secrets-store.csi.k8s.io/used=true --namespace $DEFAULT_NAMESPACE
-
-kubectl get secret aio-akv-sp -n $DEFAULT_NAMESPACE -o jsonpath='{.data.clientsecret}' | base64 --decode
 
 ##############################################################################
 # The below command will create the four required SecretProviderClasses into #
@@ -258,59 +259,8 @@ helm repo add jetstack https://charts.jetstack.io --force-update
 helm upgrade -i -n $DEFAULT_NAMESPACE cert-manager jetstack/cert-manager --set installCRDs=true --wait
 helm upgrade -i -n $DEFAULT_NAMESPACE trust-manager jetstack/trust-manager --set-string app.trust.namespace=$DEFAULT_NAMESPACE  --wait
 
-# TLS configmap for trust bundle
-echo "Creating trust bundle ConfigMap to be used by trust manager"
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: aio-ca-tls-primary-trust-bundle-test-only
-  namespace: $DEFAULT_NAMESPACE
-data:
-  $AIO_TRUST_CONFIG_MAP_KEY: |
-$(cat $rootCertFileName | sed 's/^/      /')
-EOF
-
-echo "Creating Bundle CR to be used by trust manager"
-kubectl apply -f - <<EOF
-apiVersion: trust.cert-manager.io/v1alpha1
-kind: Bundle
-metadata:
-  name: $AIO_TRUST_CONFIG_MAP
-  namespace: $DEFAULT_NAMESPACE
-spec:
-  sources:
-  - useDefaultCAs: false
-  - configMap:
-      name: aio-ca-tls-primary-trust-bundle-test-only
-      key: "$AIO_TRUST_CONFIG_MAP_KEY"
-  target:
-    configMap:
-      key: "$AIO_TRUST_CONFIG_MAP_KEY"
-    namespaceSelector:
-      matchLabels:
-        trust: enabled
-EOF
-
-echo "Checking azure-iot-operations namespace has configmaps"
-kubectl get configmap -n $DEFAULT_NAMESPACE
-
-# Create a workload namespace and validate the trust bundle is automatically created
-echo "Creating the '$WORKLOAD_NAMESPACE' namespace"
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: Namespace
-metadata:
-  labels:
-    trust: enabled
-  name: $WORKLOAD_NAMESPACE
-EOF
-
-echo "Checking $WORKLOAD_NAMESPACE namespace has trust bundle configmap '$AIO_TRUST_CONFIG_MAP' created"
-kubectl get configmap -n $WORKLOAD_NAMESPACE
-
 # Create a secret provider class for the intermediate cert
-echo "Creating SecretProviderClass for Intermediate CA"
+echo "Creating SecretProviderClass for Intermediate CA and Root CA trust"
 kubectl apply -f - <<EOF
 apiVersion: secrets-store.csi.x-k8s.io/v1
 kind: SecretProviderClass
@@ -331,6 +281,12 @@ spec:
         - |
           objectName: $intermediateCaKvSecretsNamePreFix-key
           objectType: secret
+        - |
+          objectName: $rootCaKvSecretsNamePreFix-cert-primary
+          objectType: secret
+        - |
+          objectName: $rootCaKvSecretsNamePreFix-cert-secondary
+          objectType: secret
   secretObjects: # [OPTIONAL] SecretObject defines the desired state of synced K8s secret objects
     - secretName: $PRIMARY_CA_KEY_PAIR_SECRET_NAME # name of the Kubernetes Secret object
       type: kubernetes.io/tls
@@ -339,6 +295,16 @@ spec:
           key: tls.crt
         - objectName: $intermediateCaKvSecretsNamePreFix-key # data field to populate
           key: tls.key
+    - secretName: aio-ca-tls-primary-trust-bundle-test-only # name of the Kubernetes Secret object
+      type: Opaque
+      data:
+        - objectName: $rootCaKvSecretsNamePreFix-cert-primary 
+          key: $AIO_TRUST_CONFIG_MAP_KEY
+    - secretName: aio-ca-tls-secondary-trust-bundle-test-only # name of the Kubernetes Secret object
+      type: Opaque
+      data:
+        - objectName: $rootCaKvSecretsNamePreFix-cert-secondary
+          key: $AIO_TRUST_CONFIG_MAP_KEY
 EOF
 
 echo "Deploying a dummy Pod to mount and sync secrets"
@@ -397,4 +363,45 @@ done
 
 kubectl get secret -n $DEFAULT_NAMESPACE $PRIMARY_CA_KEY_PAIR_SECRET_NAME
 
-echo "Finished initialization of cluster, ready to deploy AIO using 3-c-aio-deploy-intermediate.sh"
+echo "Checking secret aio-ca-tls-primary-trust-bundle-test-only has been created"
+kubectl get secret -n $DEFAULT_NAMESPACE aio-ca-tls-primary-trust-bundle-test-only
+
+echo "Creating Bundle CR to be used by trust manager - pointing to the primary and secondary placeholder trust bundles"
+kubectl apply -f - <<EOF
+apiVersion: trust.cert-manager.io/v1alpha1
+kind: Bundle
+metadata:
+  name: $AIO_TRUST_CONFIG_MAP
+  namespace: $DEFAULT_NAMESPACE
+spec:
+  sources:
+  - useDefaultCAs: false
+  - secret:
+      name: aio-ca-tls-primary-trust-bundle-test-only
+      key: "$AIO_TRUST_CONFIG_MAP_KEY"
+  target:
+    configMap:
+      key: "$AIO_TRUST_CONFIG_MAP_KEY"
+    namespaceSelector:
+      matchLabels:
+        trust: enabled
+EOF
+
+echo "Checking azure-iot-operations namespace has configmaps"
+kubectl get configmap -n $DEFAULT_NAMESPACE
+
+# Create a workload namespace and validate the trust bundle is automatically created
+echo "Creating the '$WORKLOAD_NAMESPACE' namespace"
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    trust: enabled
+  name: $WORKLOAD_NAMESPACE
+EOF
+
+echo "Checking $WORKLOAD_NAMESPACE namespace has trust bundle configmap '$AIO_TRUST_CONFIG_MAP' created"
+kubectl get configmap -n $WORKLOAD_NAMESPACE
+
+echo "Finished initialization of cluster"

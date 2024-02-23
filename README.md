@@ -131,13 +131,13 @@ For this sample use the following:
 # ensure Environment Variables are set as described in Readme section Initialization
 
 # initialize Arc
-./deploy/1-arc-connect.sh
+./deploy/kv-intermediate/1-arc-connect.sh
 
 # initialize root/intermediate certs, upload to Key Vault, AIO configmaps and secrets, key vault, CSI driver, install trust-manager and setup Bundle
-./deploy/2-c-aio-init-intermediate.sh
+./deploy/kv-intermediate/2-aio-init.sh
 
 # install AIO (ARM template, Broker stuff via CRD and OPC UA via Helm)
-./deploy/3-c-aio-deploy-intermediate.sh 
+./deploy/kv-intermediate/3-aio-deploy.sh 
 ```
 
 This section initializes the cluster with AIO, an Intermediate CA chain, a trust `Bundle` managed by *trust-manager* and a sample Mosquitto client Pod in the `workload` namespace. Please see the section [Testing with in-cluster Mosquitto client tools to validate trust chains](#testing-with-in-cluster-mosquitto-client-tools-to-validate-trust-chains) and play with the options.
@@ -147,7 +147,7 @@ The next phase would be to rollover the Intermediate CA and ensuring the server 
 ```bash
 
 # Rollover to secondary Intermediate CA by running 
-./deploy/4-c-aio-cert-intermediate-secondary.sh
+./deploy/kv-intermediate/4-aio-cert-secondary.sh
 
 ```
 
@@ -157,7 +157,7 @@ The final phase is to rollover the Root CA to a secondary new self-signed cert. 
 
 ```bash
 # After running ./deploy/4-c-aio-cert-intermediate-secondary you want to renew Root and Intermediate certs using 'trust-manager' and cmctl CLI:
-./deploy/5-c-aio-cert-intermediate-root-secondary.sh 
+./deploy/kv-intermediate/5-aio-cert-root-secondary.sh 
 ```
 
 ### Testing with in-cluster Mosquitto client tools to validate trust chains

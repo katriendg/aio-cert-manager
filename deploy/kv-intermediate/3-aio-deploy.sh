@@ -27,14 +27,14 @@ fi
 
 randomValue=$RANDOM
 deploymentName="aio-deployment-$randomValue"
-scriptPath=$(dirname $0)
+scriptPath=$(dirname $(dirname $0))
 
 echo "Deploying AIO via ARM template to cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP"
 
 az deployment group create \
     --resource-group $RESOURCE_GROUP \
     --name aio-deployment-$deploymentName \
-    --template-file "$scriptPath/arm/aio2preview-notarget.json" \
+    --template-file "$scriptPath/arm/aio2previewminimal.json" \
     --parameters clusterName=$CLUSTER_NAME \
     --parameters location=$LOCATION \
     --parameters clusterLocation=$LOCATION \
@@ -64,5 +64,34 @@ done
 # Deploy Mosquitto client for testing
 kubectl create serviceaccount mqtt-client -n $WORKLOAD_NAMESPACE
 kubectl apply -f $scriptPath/yaml/mosquitto_client.yaml
+
+# Deploy OPC UA with simulator
+helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/microsoft-iotoperations-opcuabroker \
+    --set image.registry=mcr.microsoft.com     \
+    --version 0.3.0-preview.3   \
+    --namespace azure-iot-operations    \
+    --create-namespace     \
+    --set secrets.kind=k8s     \
+    --set secrets.csiServicePrincipalSecretRef=aio-akv-sp \
+    --set secrets.csiDriver=secrets-store.csi.k8s.io \
+    --set mqttBroker.address=mqtts://aio-mq-dmqtt-frontend.azure-iot-operations.svc.cluster.local:8883     \
+    --set mqttBroker.authenticationMethod=serviceAccountToken \
+    --set mqttBroker.serviceAccountTokenAudience=aio-mq     \
+    --set mqttBroker.caCertConfigMapRef=${AIO_TRUST_CONFIG_MAP}   \
+    --set mqttBroker.caCertKey=${AIO_TRUST_CONFIG_MAP_KEY} \
+    --set securityPki.defaultApplicationCert=aio-opc-opcuabroker-default-application-cert \
+    --set connectUserProperties.metriccategory=aio-opc     \
+    --set opcPlcSimulation.deploy=true     \
+    --wait
+
+helm upgrade -i aio-opcplc-connector oci://mcr.microsoft.com/opcuabroker/helmchart/aio-opc-opcua-connector \
+    --version 0.3.0-preview.3 \
+    --namespace azure-iot-operations \
+    --set opcUaConnector.settings.discoveryUrl="opc.tcp://opcplc-000000.azure-iot-operations.svc.cluster.local:50000" \
+    --set opcUaConnector.settings.autoAcceptUntrustedCertificates=true \
+    --wait
+
+kubectl apply -f $scriptPath/yaml/assettypes.yaml
+kubectl apply -f $scriptPath/yaml/assets.yaml
 
 echo "Finished deploying AIO components with an intermediate primary cert chain"
