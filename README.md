@@ -15,7 +15,7 @@ Azure IoT Operations sample that highlights mechanisms and patterns to take care
 
 ### Initialization
 
-Open this project in a Visual Studio Dev Container. K3D cluster and any documented client tools will be automatically installed and ready to use for testing out the samples.
+Open this project in a Visual Studio Dev Container. K3D cluster and any documented client tools will be automatically installed and ready to use for testing out the samples in this project.
 
 Prepare the following inputs to create environment variables in the next step:
 
@@ -56,7 +56,7 @@ source ./temp/envvars.sh
 
 ## Repo Samples
 
-This repo contains two experiments for CA root cert key pair renewal, one using `cmctl` command line to force re-issuance of the certs, and a second one forcing renewal by creating a new `Issuer` and updating `BrokerListener` *Custom Resource*. Both experiments are using OpenSSL to create self-signed CA certificates and keys.
+This repo contains several experiments for CA root cert key pair renewal, one using `cmctl` command line to force re-issuance of the certs, using multiple `Issuer` resources and updating `BrokerListener` *Custom Resource*, and using just Root CA or extending to Intermediate CA usage. The experiments use *OpenSSL* and *step cli* to create self-signed CA certificates and keys.
 
 ### Sample with `cmctl` CLI to renew certs and manual updating of trust bundle
 
@@ -65,7 +65,7 @@ This is the simpler solution for ensuring rollover but it does require [`cmctl`]
 The current sample installs Key Vault, Key Vault CSI Driver Arc extension, AIO Arc extension, MQ Arc extension, Issuer, Broker and BrokerListener CRs, and OPC UA Broker and Connector using Helm charts.
 
 ```bash
-# ensure Environment Variables are set as described in Readme
+# ensure Environment Variables are set as described in Readme section Initialization
 
 # initialize Arc
 ./deploy/1-arc-connect.sh
@@ -90,7 +90,7 @@ Because TLS clients such as OPC UA Supervisor don't automatically pick up the ne
 This sample uses *trust-manager* and uses a new `Issuer` to pick-up root cert changes. Take a moment to review the different steps taken by the scripts. For this sample use:
 
 ```bash
-# ensure Environment Variables are set as described in Readme
+# ensure Environment Variables are set as described in Readme section Initialization
 
 # initialize Arc
 ./deploy/1-arc-connect.sh
@@ -109,37 +109,91 @@ This sample uses *trust-manager* and uses a new `Issuer` to pick-up root cert ch
 ./deploy/4-a-2-aio-cert-reinit-primary.sh 
 ```
 
-This sample also has an example of renewing the certs using the `cmctl` CLI for *cert-manager* to re-issue the certificates and does not need to use a new `Issuer` or update `BrokerListener`. It can be run after `./deploy/3-aio-deploy.sh`.
+This sample also has an option for renewing the certs using  `cmctl` CLI for *cert-manager* to re-issue the certificates and does not need to use a new `Issuer` or updates to `BrokerListener`. It can be run after `./deploy/3-aio-deploy.sh`.
 
 ```bash
 # After running ./deploy/3-aio-deploy.sh and you want to renew certs using 'trust-manager' and cmctl CLI:
 ./deploy/4-a-2-aio-cert-secondary-cli.sh 
 ```
 
+### Sample using Self-signed Root, Intermediate CA, Key Vault, *trust-manager* and `cmctl` for certificate renewal
+
+In this example the aim is to walk through all the steps that are required to leverage a Root CA and an Intermediate CA, and roll these over. The intermediate CA is the one used by the cluster for issuing server certificates by `cert-manager`. Although the sample here is leveraging self-signed certificates, it shows a potential flow with certificates delivered by a PKI for production.
+
+This sample can be used as a learning experiment to understand the concepts of Root and Intermediate CAs, leaf certificates, certificate chains, trust bundles and chain verification.
+The Root CA is valid for 365 days, the Intermediate CA is valid for 91 days where we assume the Intermediate CA would need to be rolled over every 3 months. The rollover needs to happen before the 3 month period is reached.
+
+For this sample use the following:
+
+```bash
+# ensure Environment Variables are set as described in Readme section Initialization
+
+# initialize Arc
+./deploy/1-arc-connect.sh
+
+# initialize root/intermediate certs, upload to Key Vault, AIO configmaps and secrets, key vault, CSI driver, install trust-manager and setup Bundle
+./deploy/kv-intermediate/2-aio-init.sh
+
+# install AIO (ARM template, Broker stuff via CRD and OPC UA via Helm)
+./deploy/kv-intermediate/3-aio-deploy.sh 
+```
+
+This section initializes the cluster with AIO, an Intermediate CA chain, a trust `Bundle` managed by *trust-manager* and a sample Mosquitto client Pod in the `workload` namespace. Please see the section [Testing with in-cluster Mosquitto client tools to validate trust chains](#testing-with-in-cluster-mosquitto-client-tools-to-validate-trust-chains) and play with the options.
+
+The next phase would be to rollover the Intermediate CA and ensuring the server certificates are reissued. This is under the assumption that the Root CA is valid for a much longer time than the Intermediate CA. Because the Root CA is still valid, the ConfigMap with trust bundle used by the clients does not need updating. Also any client Pods will not need to pick up any new ConfigMap updates so no Pod restarts are needed.
+
+```bash
+
+# Rollover to secondary Intermediate CA by running 
+./deploy/kv-intermediate/4-aio-cert-secondary.sh
+
+```
+
+You can again play with the Mosquitto Pod to verify the contents of the ConfigMap and the connection to the MQ broker.
+
+The final phase is to rollover the Root CA to a secondary new self-signed cert. This also requires the Intermediate CA to be rolled over and be signed by the new secondary Root CA. The ConfigMap with the trust bundle should contain both the primary and secondary root CAs so that clients never lose the ability to validate the server chain which may change at any point. Only after this has been ensured can the Intermediate CA be rolled over and the new server certificate issued.
+
+```bash
+# After running ./deploy/4-c-aio-cert-intermediate-secondary you want to renew Root and Intermediate certs using 'trust-manager' and cmctl CLI:
+./deploy/kv-intermediate/5-aio-cert-root-secondary.sh 
+```
+
 ### Testing with in-cluster Mosquitto client tools to validate trust chains
 
-Both samples also deploy a Pod that contains Mosquitto client tools (`mosquitto_pub` and `mosquitto_sub`), which mounts the trust bundle as a ConfigMap and following Kubernetes' [ConfigMap auto-updates](https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically) this is a great example of having cert bundles synced automatically. Take a look at the deployment file [mosquitto_client.yaml](./deploy/yaml/mosquitto_client.yaml).
+All samples also deploy a Pod that contains Mosquitto client tools (`mosquitto_pub` and `mosquitto_sub`), which mounts the trust bundle as a ConfigMap and following Kubernetes' [ConfigMap auto-updates](https://kubernetes.io/docs/concepts/configuration/configmap/#mounted-configmaps-are-updated-automatically) this is a great example of having cert bundles synced automatically. Take a look at the deployment file [mosquitto_client.yaml](./deploy/yaml/mosquitto_client.yaml).
 
 Some learnings:
 
 * In the sample Pod it typically takes about 30 seconds to sync the ConfigMap mount contents. Note this is not deterministic as officially documented
 * When the client has an open TLS connection like using `mosquitto_sub` that keeps the connection alive, the connection can stay valid for a while until new TLS handshake needs to be done. Only at this time is the trust bundle needed
 
-Test it out:
+Check there is a ConfigMap named `aio-ca-trust-bundle-test-only`.
 
 ```bash
-# Check that there is a ConfigMap ''
 kubectl get configmap -n $WORKLOAD_NAMESPACE
+```
 
+Describe the ConfigMap, if you followed one of the samples leveraging *trust-manager* you will see a label referring to this.
+
+```bash
 kubectl describe cm aio-ca-trust-bundle-test-only -n $WORKLOAD_NAMESPACE
+```
 
-# Exec into the pod
+Open interactive terminal into the Mosquitto Pod.
+
+```bash
 kubectl exec --stdin --tty mosquitto-client -n $WORKLOAD_NAMESPACE -- sh
+```
 
-# Check the current contents of the mounted ca.crt file
+Check the current contents of the mounted `ca.crt` file.
+
+```bash
 cat /var/run/certs/ca.crt
+```
 
-# Send a message to the broker adding the --cafile that has been mounted
+Publish a message to the MQ broker adding the `--cafile` parameter to point to the trust bundle that has been mounted.
+
+```bash
 mosquitto_pub -h aio-mq-dmqtt-frontend.azure-iot-operations.svc.cluster.local -p 8883 -t "testcerts" -m "hello world" -d --cafile /var/run/certs/ca.crt
 ```
 
@@ -162,7 +216,7 @@ openssl s_client -showcerts -connect localhost:8883 </dev/null
 To see SSL verification validation or errors, depending on which `-CAfile` you use with your request, you can use the following:
 
 ```bash
-openssl s_client -showcerts -connect localhost:8883 -CAfile ./temp/certs/ca-secondary-cert.pem </dev/null
+openssl s_client -showcerts -connect localhost:8883 -CAfile ./temp/certs/[yoursecondarycertname] </dev/null
 
 # Review the SSL handshake:
 # ---
@@ -173,23 +227,34 @@ openssl s_client -showcerts -connect localhost:8883 -CAfile ./temp/certs/ca-seco
 # Verify return code: 0 (ok)
 ```
 
-Also take a moment to check the `Certificate` and `CertificateRequest` resources and their events.
+Also take a moment to check the `Certificate`, its associated `Secret` and `CertificateRequest` resources and their events.
 
 ```bash
 # Review all CertificateRequests
-kubectl get certificaterequest -n $DEFAULT_NAMESPACE
+kubectl get CertificateRequest -n $DEFAULT_NAMESPACE
 
 # Check the details of the request matching the aio-mq-frontend-server-8883-xxx
-# You will see a field Status.ca which contains the base64 public CA cert - you can use this to validate which CA has been used
-kubectl describe CertificateRequest aio-mq-frontend-server-8883-sktg6 -n $DEFAULT_NAMESPACE
+# You will see a field Status.ca which contains the base64 public CA cert - you can use this to validate which CA has been used. 
+kubectl describe CertificateRequest aio-mq-frontend-server-8883-xxx -n $DEFAULT_NAMESPACE
 
 # Review the Certificate that has been issued for the MQ front-end listener, it will show DNS, renewal timings, etc
 kubectl describe Certificate aio-mq-frontend-server-8883 -n $DEFAULT_NAMESPACE
+
+# The actual Certificate is stored in a secret named `aio-mq-frontend-server-8883`
+kubectl get secret aio-mq-frontend-server-8883 -n $DEFAULT_NAMESPACE -o jsonpath='{.data.tls\.crt}' | base64 --decode
+
 ```
+
+## TODOs
+
+* Add a document about pros and cons around Intermediate CAs
+* For the Intermediate CA Sample: document how the CA is preset in Key Vault and on SPC + Bundle as a duplicate of Primary until first rollover
+* Document TLS Handshake
 
 ## Things to Understand
 
-* How do trust bundles work and mounting them, using them in pods
+* How do trust bundles work, mounting them, using them in pods
+* Certificate chains and TLS handshake
 * How *cert-manager* `Issuer` work with `ca` spec with a secret, and when are certs re-issued. For example changes to the secret are not detected automatically for the cert to be re-issued. There is still an open GH issue on the topic: [https://github.com/cert-manager/cert-manager/issues/2478](https://github.com/cert-manager/cert-manager/issues/2478)
 * Basics of using *trust-manager*  as an option for managing (public) trust
 * How pods with ConfigMaps as mounted volumes do and don't sync, as well as sync delay with K8S

@@ -23,7 +23,7 @@ if [[ $(k3d cluster list | grep devcluster) ]]; then
     echo "Cluster already exists so this is a rebuild of Dev Container, resetting context"
     k3d kubeconfig merge devcluster --kubeconfig-merge-default
 else
-    k3d cluster create devcluster --registry-use k3d-devregistry.localhost:5500 -i ghcr.io/jlian/k3d-nfs:v1.25.3-k3s1 \
+    k3d cluster create devcluster --registry-use k3d-devregistry.localhost:5500 -i ghcr.io/jlian/k3d-nfs:v1.29.1-k3s1 \
     -p '1883:1883@loadbalancer' \
     -p '8883:8883@loadbalancer' 
 fi

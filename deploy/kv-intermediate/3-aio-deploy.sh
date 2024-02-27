@@ -4,7 +4,7 @@ set -e
 
 # ================================================================== #
 # This script deploys minimal AIO extensions with the CLI
-# And sets up MQ and OPC UA through CRDs and Helm
+# And sets up MQ and a Mosquitto client Pod for testing
 # ================================================================== #
 
 # check if the required environment variables are set
@@ -27,7 +27,7 @@ fi
 
 randomValue=$RANDOM
 deploymentName="aio-deployment-$randomValue"
-scriptPath=$(dirname $0)
+scriptPath=$(dirname $(dirname $0))
 
 echo "Deploying AIO via ARM template to cluster $CLUSTER_NAME in resource group $RESOURCE_GROUP"
 
@@ -61,10 +61,14 @@ do
     status=$(kubectl get broker mq-instance-broker -o json | jq '.status.status')
 done
 
+# Deploy Mosquitto client for testing
+kubectl create serviceaccount mqtt-client -n $WORKLOAD_NAMESPACE
+kubectl apply -f $scriptPath/yaml/mosquitto_client.yaml
+
 # Deploy OPC UA with simulator
 helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/microsoft-iotoperations-opcuabroker \
     --set image.registry=mcr.microsoft.com     \
-    --version 0.3.0-preview.1   \
+    --version 0.3.0-preview.3   \
     --namespace azure-iot-operations    \
     --create-namespace     \
     --set secrets.kind=k8s     \
@@ -74,13 +78,14 @@ helm upgrade -i opcuabroker oci://mcr.microsoft.com/opcuabroker/helmchart/micros
     --set mqttBroker.authenticationMethod=serviceAccountToken \
     --set mqttBroker.serviceAccountTokenAudience=aio-mq     \
     --set mqttBroker.caCertConfigMapRef=${AIO_TRUST_CONFIG_MAP}   \
-    --set mqttBroker.caCertKey=ca.crt \
+    --set mqttBroker.caCertKey=${AIO_TRUST_CONFIG_MAP_KEY} \
+    --set opcPlcSimulation.autoAcceptUntrustedCertificates=true \
     --set connectUserProperties.metriccategory=aio-opc     \
     --set opcPlcSimulation.deploy=true     \
     --wait
 
 helm upgrade -i aio-opcplc-connector oci://mcr.microsoft.com/opcuabroker/helmchart/aio-opc-opcua-connector \
-    --version 0.3.0-preview.1 \
+    --version 0.3.0-preview.3 \
     --namespace azure-iot-operations \
     --set opcUaConnector.settings.discoveryUrl="opc.tcp://opcplc-000000.azure-iot-operations.svc.cluster.local:50000" \
     --set opcUaConnector.settings.autoAcceptUntrustedCertificates=true \
@@ -89,8 +94,4 @@ helm upgrade -i aio-opcplc-connector oci://mcr.microsoft.com/opcuabroker/helmcha
 kubectl apply -f $scriptPath/yaml/assettypes.yaml
 kubectl apply -f $scriptPath/yaml/assets.yaml
 
-# Deploy Mosquitto client for testing
-kubectl create serviceaccount mqtt-client -n $WORKLOAD_NAMESPACE
-kubectl apply -f $scriptPath/yaml/mosquitto_client.yaml
-
-echo "Finished deploying AIO components with primary cert chain"
+echo "Finished deploying AIO components with an intermediate primary cert chain"
