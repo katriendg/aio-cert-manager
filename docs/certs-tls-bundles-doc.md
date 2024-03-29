@@ -1,4 +1,4 @@
-# Certificates, Roots CAs, Intermediate CA, Leaf Certificates, Trust and TLS
+# Certificates, Roots CAs, Intermediate CA, Leaf Certificates, Trust, and TLS
 
 Azure IoT Operations utilizes TLS for secure communication between servers and clients in services such as IoT MQ. This document aims to demystify the complex aspects of TLS, focusing on key elements like Root CA, Intermediate CA, Leaf Certificates, Certificate Chains, and Trust Bundles.
 
@@ -24,9 +24,7 @@ The leaf certificate is the actual server or client certificate associated with 
 
 When using public CAs from known vendors, these Root CAs are typically distributed with OS and are stored in the computer's trust store. However, when using private or self-signed CAs, a manual step is required to ensure all clients have an ability to load custom roots of trust.
 
-In Kubernetes, *trust-manager* is a useful solution for distributing trust.
-
-, part of but also independent of *cert-manager*, is an interesting solution for distributing trust. It can distribute both  default CAs from known vendors and your own roots of trust. Read more about *trust-manager* [here](https://cert-manager.io/docs/trust/trust-manager/).
+In Kubernetes, *trust-manager* is a useful solution for distributing trust. It can distribute default CAs from known vendors as well as your own roots of trust. Read more about *trust-manager* [here](https://cert-manager.io/docs/trust/trust-manager/).
 
 Regardless of whether you use *trust-manager* or not, you will typically end up distributing the Root CA distribution via a ConfigMap, which is then mounted onto Pods (applications) that require TLS connectivity to servers. These ConfigMaps, often referred to as Trust Bundles, may contain one or more root CAs.
 
@@ -46,17 +44,17 @@ In IoT MQ, the configuration of TLS is done through `BrokerListener`. The flow w
 ```mermaid
 sequenceDiagram
     autonumber
-    Mosquitto->>MQ Frontend: TLS initialition
-    MQ Frontend-->>Mosquitto: Here is my certificate chain
-    Mosquitto-->>Mosquitto: Check root of trust (ConfigMap)
-    Mosquitto->>MQ Frontend: OK, TLS Initialized 
+    MQTT Client->>MQ Frontend: TLS initialization
+    MQ Frontend-->>MQTT Client: Here is my certificate chain
+    MQTT Client-->>MQTT Client: Check root of trust (ConfigMap)
+    MQTT Client->>MQ Frontend: OK, TLS Initialized 
 ```
 
 ## Trust Bundle and Certificate Renewal
 
 Public Root CAs often have a very long expiry time, up to 25 years. In such cases, any number of Intermediate CAs and Leaf certificates might expire and renew, but the client needs no updating to the root of trust since this one has such a long validity timespan.
 
-In Entperprise PKI or self-signed Root CAs this is often set to a much lower timespan since the whole chain is controlled end to end. This is why, it is often required to update Trust Bundles with new Root CAs and putting them in the same bundle. If a bundle contains the current Root CA all TLS communication will work. Then once a Root CA needs to be renewed, the Trust Bundle needs to be updated with the current as well as the new Root CA so the client is ready to verify a new chain once the server certificate is renewed. This rollover period needs to be carefully planned and clients need to be updated well upfront to any server certificate renewal.
+In Enterprise PKI or self-signed Root CAs this is often set to a much lower timespan since the whole chain is controlled end to end. This is why, it is often required to update Trust Bundles with new Root CAs and putting them in the same bundle. If a bundle contains the current Root CA all TLS communication will work. Then once a Root CA needs to be renewed, the Trust Bundle needs to be updated with the current as well as the new Root CA so the client is ready to verify a new chain once the server certificate is renewed. This rollover period needs to be carefully planned and clients need to be updated well upfront to any server certificate renewal.
 
 ## Trust Bundles and Trust Chains
 
