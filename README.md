@@ -4,7 +4,7 @@ This Azure IoT Operations example showcases strategies and methods for managing,
 
 For a review of concepts such as TLS, Certificates, CA, and Trust Bundles, refer to: [Certificates, Roots CAs, Intermediate CA, Leaf Certificates, Trust and TLS](./docs/certs-tls-bundles-doc.md).
 
-For an overall view of the AIO MQ Certificate management options, refer to: [AIO MQ Certificate management](./aio-certificate-management.md).
+For an overall view of the AIO MQ Certificate management options, refer to: [AIO MQ Certificate management](./docs/aio-certificate-management.md).
 
 > Please note, this repository is designed for educational purposes and does not constitute official advice.
 
