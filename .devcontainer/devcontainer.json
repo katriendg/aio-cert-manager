@@ -14,7 +14,7 @@
 		},
 		"ghcr.io/rio/features/k3d:1": {},
 		"ghcr.io/rio/features/k9s:1.1.5": {},
-		"ghcr.io/devcontainers/features/powershell:1.2": {},
+		"ghcr.io/devcontainers/features/powershell:1.3.4": {},
 		"ghcr.io/devcontainers/features/dotnet:2": {
 			"version": "7.0",
         	"additionalVersions": "8.0"

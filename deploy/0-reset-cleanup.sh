@@ -18,7 +18,7 @@ k3d cluster delete devcluster
 # Create local registry for K3D and local development
 k3d registry create devregistry.localhost  --port 5500
 
-k3d cluster create devcluster --registry-use k3d-devregistry.localhost:5500 -i ghcr.io/jlian/k3d-nfs:v1.29.1-k3s1 --env 'K3D_FIX_MOUNTS=1@server:*' \
+k3d cluster create devcluster --registry-use k3d-devregistry.localhost:5500 --env 'K3D_FIX_MOUNTS=1@server:*' \
     -p '1883:1883@loadbalancer' \
     -p '8883:8883@loadbalancer' 
 

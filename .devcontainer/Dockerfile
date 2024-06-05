@@ -18,5 +18,5 @@ RUN wget https://github.com/EdJoPaTo/mqttui/releases/download/v0.19.0/mqttui-v0.
 
 # Install cmctl - cert-manager's CLI
 RUN cd /usr/bin && \
-    curl -fsSL https://github.com/cert-manager/cert-manager/releases/latest/download/cmctl-linux-amd64.tar.gz | tar xzv --no-anchored cmctl
+    curl -fsSL https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager-cmctl-linux-arm64.tar.gz | tar xzv --no-anchored cmctl
                

@@ -358,7 +358,7 @@ echo "Checking secret $PRIMARY_CA_KEY_PAIR_SECRET_NAME has been created"
 # wait for creating of secret, check every 2 seconds
 while [ "$(kubectl get secret -n $DEFAULT_NAMESPACE $PRIMARY_CA_KEY_PAIR_SECRET_NAME -o jsonpath='{.type}')" != "kubernetes.io/tls" ]; do
     echo "Waiting for secret to be created"
-    sleep 2
+    sleep 30
 done
 
 kubectl get secret -n $DEFAULT_NAMESPACE $PRIMARY_CA_KEY_PAIR_SECRET_NAME

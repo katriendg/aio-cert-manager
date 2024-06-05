@@ -1,6 +1,6 @@
 # Azure IoT Operations (AIO) TLS Certificate Management Sample
 
-This Azure IoT Operations example showcases strategies and methods for managing, renewing, and handling TLS certificates and trust bundles. The objective of this example is to explore and confirm ways to transition CA Certificates with minimal disruption to AIO services and client tasks.
+This Azure IoT Operations sample showcases strategies and methods for managing, renewing, and handling TLS certificates and trust bundles. The objective of this example is to explore and confirm ways to transition CA Certificates with minimal disruption to AIO services and client tasks.
 
 For a review of concepts such as TLS, Certificates, CA, and Trust Bundles, refer to: [Certificates, Roots CAs, Intermediate CA, Leaf Certificates, Trust and TLS](./docs/certs-tls-bundles-doc.md).
 
